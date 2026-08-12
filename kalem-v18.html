@@ -555,6 +555,8 @@ tfoot td{padding:9px 10px;font-weight:700;font-size:12px;border-top:2px solid va
       <div class="syncopt" onclick="doExport()"><span class="syncic">📤</span><div><div class="synctit">تصدير البيانات</div><div class="syncdesc">انسخ الكود للجهاز الآخر</div></div></div>
       <div class="syncopt" onclick="showImport()"><span class="syncic">📥</span><div><div class="synctit">استيراد البيانات</div><div class="syncdesc">الصق الكود من الجهاز الآخر</div></div></div>
       <div class="syncopt" onclick="exportWidget()"><span class="syncic">📱</span><div><div class="synctit">تصدير الويدجت (4 أيام)</div><div class="syncdesc">JSON لتحديث ويدجت الشاشة الرئيسية</div></div></div>
+      <div class="syncopt" onclick="checkAppUpdate()"><span class="syncic">🔗</span><div><div class="synctit">رابط التطبيق والتحديثات</div><div class="syncdesc">نسخ الرابط أو التحقق من نسخة أحدث</div></div></div>
+      <div id="updateInfo" style="display:none;margin-top:10px;"></div>
     </div>
     <div id="sv2" style="display:none;">
       <div id="smsg"></div>
@@ -1437,6 +1439,52 @@ function backSync(){
   document.getElementById('sv3').style.display='none';
   document.getElementById('smsg').innerHTML='';
   document.getElementById('simsg').innerHTML='';
+  document.getElementById('updateInfo').style.display='none';
+  document.getElementById('updateInfo').innerHTML='';
+}
+
+async function checkAppUpdate(){
+  const box=document.getElementById('updateInfo');
+  box.style.display='block';
+  box.innerHTML='<div style="text-align:center;padding:12px;color:var(--sub);">🔄 جارِ التحقق...</div>';
+  const curUrl=location.href.split('?')[0].split('#')[0];
+  const m=location.pathname.match(/kalem-v(\d+)\.html/i);
+  const curVer=m?parseInt(m[1]):null;
+  let html='';
+  try{
+    const res=await fetch('https://api.github.com/repos/mahmoudhanoof-pixel/Kalem/contents/');
+    if(!res.ok) throw new Error('fetch failed');
+    const files=await res.json();
+    const versions=files
+      .map(f=>{ const mm=f.name.match(/^kalem-v(\d+)\.html$/i); return mm?{name:f.name,ver:parseInt(mm[1])}:null; })
+      .filter(Boolean)
+      .sort((a,b)=>b.ver-a.ver);
+    const latest=versions[0];
+    if(latest && curVer!==null && latest.ver>curVer){
+      const latestUrl=curUrl.replace(/kalem-v\d+\.html/i,latest.name);
+      html+=`<div style="background:#FEF3C7;color:#92400E;padding:10px;border-radius:10px;margin-bottom:10px;font-size:13px;">🆕 في نسخة أحدث متوفرة: <b>${latest.name}</b></div>`;
+      html+=`<a href="${latestUrl}" style="display:block;text-align:center;background:var(--gold,#C8A84B);color:#0F1D38;font-weight:700;padding:10px;border-radius:10px;text-decoration:none;margin-bottom:10px;">فتح آخر نسخة</a>`;
+    }else if(latest){
+      html+=`<div style="background:#DCFCE7;color:#166534;padding:10px;border-radius:10px;margin-bottom:10px;font-size:13px;">✅ عندك آخر نسخة (${latest.name})</div>`;
+    }else{
+      html+=`<div style="color:var(--sub);margin-bottom:10px;font-size:13px;">تعذّر تحديد أحدث نسخة.</div>`;
+    }
+  }catch(err){
+    html+=`<div style="color:var(--sub);margin-bottom:10px;font-size:13px;">تعذّر التحقق من التحديثات (تأكد من الاتصال بالإنترنت).</div>`;
+  }
+  html+=`<div style="font-size:11px;color:var(--sub);word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;margin-bottom:8px;">${curUrl}</div>`;
+  html+=`<button class="bsub" onclick="copyAppLink('${curUrl}')">📋 نسخ رابط التطبيق</button>`;
+  box.innerHTML=html;
+}
+function copyAppLink(url){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>alert('✅ انسخ الرابط بنجاح')).catch(()=>fallbackCopyLink(url));
+  }else fallbackCopyLink(url);
+}
+function fallbackCopyLink(url){
+  const ta=document.createElement('textarea'); ta.value=url; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); alert('✅ انسخ الرابط بنجاح'); }catch(e){ alert('الرابط: '+url); }
+  document.body.removeChild(ta);
 }
 
 function exportWidget(){
