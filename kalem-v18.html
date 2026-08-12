@@ -93,7 +93,7 @@ body{font-family:'IBM Plex Sans Arabic','Geeza Pro',sans-serif;background:var(--
 .tbadge{font-size:12px;color:var(--sub);background:var(--bg);padding:3px 8px;border-radius:7px;}
 .stag{font-size:11px;color:var(--navy);background:var(--golddim);padding:3px 9px;border-radius:7px;font-weight:600;border:1px solid rgba(200,168,75,.2);}
 .dbadge{font-size:11px;background:#f0f0f0;color:var(--grey);padding:3px 8px;border-radius:7px;font-weight:600;}
-.albadge{font-size:11px;background:#FEF3C7;color:#92400E;padding:3px 8px;border-radius:7px;}
+.albadge{font-size:11px;background:#FECACA;color:#B91C1C;padding:3px 8px;border-radius:7px;}
 
 .cr3{display:flex;justify-content:space-between;align-items:center;}
 .cpay{display:flex;flex-direction:column;gap:1px;}
@@ -737,7 +737,7 @@ function renderList(){
       </div>
       <div class="cr2">
         ${e.time?`<span class="tbadge">🕐 ${e.time}</span>`:''}
-        ${e.alertTime?`<span class="albadge">⏰ ${e.alertTime}</span>`:''}
+        ${e.remindMinutes?`<span class="albadge">🔔 ${remindLabel(e.remindMinutes)}</span>`:''}
         ${e.svc?`<span class="stag">${esc(e.svc)}</span>`:''}
         ${e.done?`<span class="dbadge">✔ منجز</span>`:''}
       </div>
@@ -780,6 +780,11 @@ function saveCustomSvc(name){
 function onSvcChange(){
   const v=document.getElementById('fSvc').value;
   document.getElementById('fSvcOtherWrap').style.display=(v==='__other__')?'':'none';
+}
+function remindLabel(mins){
+  const m=parseInt(mins);
+  const map={15:'قبل 15 دقيقة',30:'قبل 30 دقيقة',60:'قبل ساعة',1440:'قبل يوم',2880:'قبل يومين'};
+  return map[m] || ('قبل '+m+' د');
 }
 function currentSvcValue(){
   const sel=document.getElementById('fSvc').value;
@@ -834,7 +839,7 @@ function openEdit(id){
     document.getElementById('fSvcOtherWrap').style.display='none';
     document.getElementById('fSvcOther').value='';
   }
-  document.getElementById('fRemindBefore').value='30';
+  document.getElementById('fRemindBefore').value=(e.remindMinutes!==undefined && e.remindMinutes!==null)?e.remindMinutes:'30';
   document.getElementById('fTotal').value=e.total||'';
   document.getElementById('fPaid').value=e.paid||'';
   document.getElementById('fExp').value=e.exp||'';
@@ -862,6 +867,7 @@ function saveEntry(){
     exp:document.getElementById('fExp').value,
     note:document.getElementById('fNote').value.trim(),
     done:fDone,
+    remindMinutes:document.getElementById('fRemindBefore').value,
   };
   if(editId){ const i=entries.findIndex(x=>x.id===editId); if(i!==-1) entries[i]=entry; }
   else { entries.push(entry); activeDate=date; }
