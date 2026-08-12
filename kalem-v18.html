@@ -896,20 +896,26 @@ async function addToCalendar(entryOrId){
   const e=(entryOrId && typeof entryOrId==='object')?entryOrId:entries.find(x=>x.id===entryOrId);
   if(!e) return;
   if(!e.date){ alert('لا يوجد تاريخ لهذا الموعد'); return; }
-  const ics=buildICS(e);
-  const fname='موعد-'+(e.name||'بدون_اسم').replace(/[^\w\u0600-\u06FF]+/g,'_')+'.ics';
-  try{
+  if(!isStandalone()){
+    // Regular Safari tab: direct navigation lets iOS show the native "Add to Calendar" screen immediately.
+    const ics=buildICS(e);
     const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
-    const file=new File([blob],fname,{type:'text/calendar'});
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:'تذكير موعد — '+e.name});
-    }else{
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=fname;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),10000);
-    }
-  }catch(err){ if(err.name!=='AbortError') alert('تعذّر إنشاء التذكير: '+err.message); }
+    const url=URL.createObjectURL(blob);
+    window.location.href=url;
+    setTimeout(()=>URL.revokeObjectURL(url),15000);
+    return;
+  }
+  // Installed/standalone PWA: iOS blocks direct file navigation here.
+  // Open a tiny companion page in real Safari (escapes the sandbox) that triggers
+  // the native Add-to-Calendar screen directly — no "Save to Files" step needed.
+  const params=new URLSearchParams({
+    name:e.name||'', date:e.date||'', time:e.time||'',
+    svc:e.svc||'', note:e.note||'', remind:e.remindMinutes||''
+  });
+  const helperUrl=new URL('add-reminder.html', location.href).href+'?'+params.toString();
+  const a=document.createElement('a');
+  a.href=helperUrl; a.target='_blank'; a.rel='noopener';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 function addToCalendarFromForm(){
   const name=document.getElementById('fName').value.trim();
